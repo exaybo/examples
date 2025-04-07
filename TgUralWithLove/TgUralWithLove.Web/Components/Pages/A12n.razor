@@ -1,0 +1,134 @@
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@using Auth
+@using MudBlazor
+
+@page "/a12n"
+@rendermode InteractiveServer
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider CustomAuthStateProvider
+
+@inject IJSRuntime JSRuntime
+@inject IConfiguration configuration
+@implements IDisposable
+
+
+<h3>Вход</h3>
+<AuthorizeView>
+    <Authorized>
+        <MudCard Class="pa-4"  >
+            <MudCardContent>
+                <MudText>Вы авторизованы как @LoggedUsername</MudText>
+            </MudCardContent>
+            <MudCardActions>
+                <MudButton OnClick="Logout" Variant="Variant.Filled" Color="Color.Primary" Class="ml-auto">Выйти</MudButton>
+            </MudCardActions>
+        </MudCard>
+    </Authorized>
+    <NotAuthorized>
+        <MudStack Row="false">
+            <MudCard Class="pa-4" >
+                <MudText Typo="Typo.h5" Class="mb-4">через Telegram:</MudText>
+                <script async src="https://telegram.org/js/telegram-widget.js?22" data-telegram-login="@(configuration.GetSection("Telegram")["BotName"])" data-size="large" data-onauth="onTelegramAuth(user)" data-request-access="write"></script>
+            </MudCard>
+
+            <MudSpacer></MudSpacer>
+
+            <MudCard Class="pa-4" >
+                <MudCardContent>
+                    <MudText Typo="Typo.h5" Class="mb-4">Локальный пользователь:</MudText>
+                    <MudStack Row="true" Wrap="Wrap.Wrap">
+                        <MudTextField @bind-Value="username" Label="Username"  Class="mb-3" />
+                        <MudTextField @bind-Value="password" Label="Password"  InputType="InputType.Password" />
+                    </MudStack>
+                    @if (isInvalid)
+                    {
+                        <MudAlert Severity="Severity.Error" Class="mt-3">
+                            Неверные учетные данные
+                        </MudAlert>
+                    }
+                </MudCardContent>
+
+                <MudCardActions>
+                    <MudButton OnClick="Login" Variant="Variant.Filled" Color="Color.Primary" Class="ml-auto">
+                        Login
+                    </MudButton>
+                </MudCardActions>
+            </MudCard>
+
+        </MudStack>
+
+    </NotAuthorized>
+</AuthorizeView>
+
+
+
+@code {
+    private string username = string.Empty;
+    private string password = string.Empty;
+    private bool isInvalid = false;
+
+    string LoggedUsername => (CustomAuthStateProvider as CustomAuthenticationStateProvider).CurrentUser.Username;
+
+
+    private async Task Login()
+    {
+        isInvalid = !(await (CustomAuthStateProvider as CustomAuthenticationStateProvider).SignInAsync(username, password));
+    }
+
+    private async Task Logout()
+    {
+        (CustomAuthStateProvider as CustomAuthenticationStateProvider).SignOut();
+    }
+
+    [JSInvokable]
+    public async Task TgLogin(TgUserData tgUser)
+    {
+        var isInvalid = !(await (CustomAuthStateProvider as CustomAuthenticationStateProvider).SignInAsync(tgUser));
+    }
+
+
+
+    private DotNetObjectReference<A12n>? objRef;
+
+    protected override void OnInitialized() =>
+        objRef = DotNetObjectReference.Create(this);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+
+            //передаем DonNetHelper в javascript
+            await JSRuntime.InvokeVoidAsync("initPageScripts", objRef);
+        }
+    }
+
+    public void Dispose() => objRef?.Dispose();
+}
+
+
+<script type="text/javascript">
+
+    window.initPageScripts = (dotNetHelper) => {
+        window.DotNetHelperLink = dotNetHelper;
+        //test
+        //onTelegramAuth(user);
+    };
+
+    //test
+    // var user = {
+    //     first_name: "alx",
+    //     last_name: null,
+    //     id: 404629537,
+    //     username: "alx_df",
+    //     photo_url: "https://t.me/i/userpic/320/DQhv9px0MH_m9WBBYfbMxXuDNXreaF9fIu-4U_81ug8.jpg",
+    //     auth_date: 1733054804,
+    //     hash: "a9b27b3846e4f16ba5e1f8fe259abc001cb7dc3cd7247611ab2967cc3cfeac82"
+    // };
+
+    function onTelegramAuth(user) {
+        window.DotNetHelperLink.invokeMethodAsync('TgLogin', user)
+                .then(() => console.log('user passed to dotnet'))
+                .catch(err => console.error(err));
+    }
+</script>

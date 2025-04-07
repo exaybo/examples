@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "BotAsConsole": {
+      "commandName": "Project"
+    },
+    "Container (Dockerfile)": {
+      "commandName": "Docker"
+    }
+  }
+}

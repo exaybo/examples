@@ -1,0 +1,272 @@
+﻿@page "/places"
+@using Logics
+@using Logics.Entities
+@using Logics.Filters
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using MudBlazor
+@using TgUralWithLove.Web.Components.Dialogs
+
+@inject IDialogService DialogService
+@inject PlaceLogic placeLogic
+@rendermode InteractiveServer
+
+@* ICONS
+https://mudblazor.com/features/icons#icons *@
+
+<PageTitle>Places</PageTitle>
+
+<h1>Места</h1>
+
+<AuthorizeView Roles="Admin">
+    <NotAuthorized>
+        Раздел администрирования
+    </NotAuthorized>
+
+    <Authorized>
+
+
+        @if (!isDataLoaded)
+        {
+            <MudSkeleton />
+            <MudSkeleton SkeletonType="SkeletonType.Circle" Width="50px" Height="50px" />
+            <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="110px" />
+        }
+        else
+        {
+            <MudDialogProvider />
+            <MudPopoverProvider />
+
+            <MudFab StartIcon="@Icons.Material.Filled.Add"
+            Color="Color.Primary"
+            Style="position: fixed; bottom: 16px; right: 16px; z-index: 1000"
+            OnClick="() => OnEditPlace(null)" />
+
+
+            <MudStack Row="false">
+
+                <MudPaper Class="filter-panel" Style="padding:4pt;">
+                    <MudStack Row="true" Wrap="Wrap.Wrap" AlignItems="AlignItems.Start">
+                        <MudTextField @bind-Value="filterString" Placeholder="название" />
+
+                        <MudSelect T="string" @bind-Value="filterPublicity" Style="min-width: 15ch;">
+                            <MudSelectItem Value="@("All")">
+                                <MudIcon Icon="@Icons.Material.Filled.Visibility" Color="Color.Success" /> <strong>&</strong>
+                                <MudIcon Icon="@Icons.Material.Filled.DisabledVisible" Color="Color.Warning" />
+                            </MudSelectItem>
+                            <MudSelectItem Value="@("Published")">
+                                <MudIcon Icon="@Icons.Material.Filled.Visibility" Color="Color.Success" Class="publicationMark" />
+                            </MudSelectItem>
+                            <MudSelectItem Value="@("Hidden")">
+                                <MudIcon Icon="@Icons.Material.Filled.DisabledVisible" Color="Color.Warning" Class="publicationMark" />
+                            </MudSelectItem>
+                        </MudSelect>
+
+                        <MudSelect T="string" @bind-Value="sortValue" Style="min-width: 15ch;">
+                            <MudSelectItem Value="@("Created")">
+                                Создано
+                                <MudIcon Icon="@Icons.Material.Filled.Sort" Style="transform: scaleY(-1);" />
+                            </MudSelectItem>
+                            <MudSelectItem Value="@("Created_Desc")">
+                                Создано
+                                <MudIcon Icon="@Icons.Material.Filled.Sort" />
+                            </MudSelectItem>
+                            <MudSelectItem Value="@("Name")">
+                                Имя
+                                <MudIcon Icon="@Icons.Material.Filled.Sort" Style="transform: scaleY(-1);" />
+                            </MudSelectItem>
+                            <MudSelectItem Value="@("Name_Desc")">
+                                Имя
+                                <MudIcon Icon="@Icons.Material.Filled.Sort" />
+                            </MudSelectItem>
+
+                            <MudSelectItem Value="@("IsPublic")">
+                                Публикация
+                                <MudIcon Icon="@Icons.Material.Filled.Sort" Style="transform: scaleY(-1);" />
+                            </MudSelectItem>
+                            <MudSelectItem Value="@("IsPublic_Desc")">
+                                Публикация
+                                <MudIcon Icon="@Icons.Material.Filled.Sort" />
+                            </MudSelectItem>
+
+                        </MudSelect>
+                        <MudSpacer />
+                        <MudIconButton Icon="@Icons.Material.Filled.FilterAlt" Color="Color.Default" Size="Size.Small" OnClick="async () => await virtualize.RefreshDataAsync()" />
+                        <MudIconButton Icon="@Icons.Material.Filled.FilterAltOff" Color="Color.Default" Size="Size.Small" OnClick="async () => await OnFilterClean()" />
+
+
+                    </MudStack>
+                </MudPaper>
+
+                <MudSpacer />
+
+                <Virtualize @ref="virtualize" Context="place" ItemsProvider="LoadEntities">
+                    <ItemContent>
+                        <MudCard Elevation="0">
+                            <MudCardHeader>
+                                <CardHeaderContent>
+                                    <MudText Typo="Typo.h6">
+                                        @place.Name
+                                    </MudText>
+                                </CardHeaderContent>
+                                <CardHeaderActions>
+
+                                    @if (place.IsPublic)
+                                    {
+                                        <MudIcon Icon="@Icons.Material.Filled.Visibility" Color="Color.Success" Class="publicationMark" />
+                                    }
+                                    else
+                                    {
+                                        <MudIcon Icon="@Icons.Material.Filled.DisabledVisible" Color="Color.Warning" Class="publicationMark" />
+                                    }
+
+                                    <MudFab Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Delete" OnClick="() => OnDeletePlace(place)" Size="Size.Small" />
+                                    <MudFab Color="Color.Tertiary" StartIcon="@Icons.Material.Filled.Edit" OnClick="() => OnEditPlace(place)" Size="Size.Small" />
+
+                                </CardHeaderActions>
+                            </MudCardHeader>
+                            <MudCardContent>
+                                @if (!string.IsNullOrWhiteSpace(place.Description))
+                                {
+                                    <MudField Label="Описание" Underline="false">@((MarkupString)place.Description)</MudField>
+                                }
+                                <MudField Label="Адрес" Underline="false">@place.Address</MudField>
+                                @if (@place.GeoLatitude.HasValue && @place.GeoLongitude.HasValue)
+                                {
+                                    <MudField Label="Координаты (lat,lon)" Underline="false">
+                                        @place.GeoLatitude.Value.ToString("F5"),@place.GeoLongitude.Value.ToString("F5")
+                                    </MudField>
+                                }
+                                @if(!string.IsNullOrWhiteSpace(place.LastTgSentError))
+                                {
+                                    <MudField Label="Ошибка при отправке через Tg" Underline="false">
+                                        <MudIcon Icon="@Icons.Material.Filled.Error" Color="@Color.Error" />
+                                        @place.LastTgSentError
+                                    </MudField>
+                                }
+                            </MudCardContent>
+                        </MudCard>
+
+
+                    </ItemContent>
+                    <Placeholder>
+                        <p>
+                            Loading&hellip;
+                        </p>
+                    </Placeholder>
+                    <EmptyContent>
+                        <p>
+                            There are no strings to display.
+                        </p>
+                    </EmptyContent>
+                </Virtualize>
+            </MudStack>
+
+
+        }
+
+    </Authorized>
+</AuthorizeView>
+
+
+@code {
+    private bool isDataLoaded { get; set; } = false;
+
+    private GridItemsProvider<Place>? placeProvider;
+
+    Virtualize<Place> virtualize;
+
+    string filterString { get; set; }
+    string sortValue { get; set; } = "Created_Desc";
+    string filterPublicity { get; set; } = "All";
+
+
+
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+        if (firstRender)
+        {
+            isDataLoaded = true;
+            StateHasChanged();
+        }
+    }
+
+
+
+    private async ValueTask<ItemsProviderResult<Place>> LoadEntities(ItemsProviderRequest req)
+    {
+
+        int? take = req.Count;
+        int? skip = req.StartIndex;
+
+        //var sp = req.GetSortByProperties();
+        //var pn = sp.FirstOrDefault().PropertyName;
+        string? orderField = null;
+        bool isDesc = false;
+        if (!string.IsNullOrEmpty(sortValue))
+        {
+            orderField = sortValue.Split("_").FirstOrDefault();
+            isDesc = sortValue.Contains("_Desc");
+        }
+
+        PlaceFilter placeFilter = new PlaceFilter()
+            {
+                Substring = filterString
+            };
+        if (filterPublicity != "All")
+            placeFilter.IsPublic = filterPublicity == "Published";
+
+        var places = (await placeLogic.Read(take, skip, filter: placeFilter, orderField: orderField, orderDesk: isDesc));
+
+
+
+        return new ItemsProviderResult<Place>(places.Item1, (int)places.Item2);
+    }
+
+    private async Task OnEditPlace(Place place)
+    {
+        if (place == null)
+            place = new Place();
+
+        var options = new DialogOptions { CloseOnEscapeKey = true };
+        var parameters = new DialogParameters<PlacesDialog> { { x => x.place, place } };
+
+        var dialog = await DialogService.ShowAsync<PlacesDialog>("Simple Dialog", parameters, options);
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            Place place2change = (Place)result.Data;
+            await placeLogic.UpdateOrCreate(place2change);
+        }
+
+        await virtualize.RefreshDataAsync();
+    }
+
+    private async Task OnDeletePlace(Place place)
+    {
+        if (place == null)
+            throw new ArgumentException();
+
+        bool? result = await DialogService.ShowMessageBox(
+            "Внимание!",
+            $"Удалить {place.Name}?",
+            yesText: "Удалить", cancelText: "Отмена");
+        if (result == true)
+        {
+            await placeLogic.Delete(place.Id);
+            await virtualize.RefreshDataAsync();
+        }
+    }
+
+    async Task OnFilterClean()
+    {
+        filterString = null;
+        sortValue = "Created_Desc";
+        filterPublicity = "All";
+        await virtualize.RefreshDataAsync();
+    }
+}

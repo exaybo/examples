@@ -1,0 +1,129 @@
+﻿@using Logics
+@using Logics.Entities
+@using Logics.Filters
+@using MudBlazor
+@using System.Globalization
+@using System.Text.RegularExpressions
+@inject IDialogService DialogService
+@inject PlaceLogic placeLogic
+@* @inject IJSRuntime JS *@
+
+<MudDialog Style="min-width:80%">
+    <TitleContent>
+        Событие
+    </TitleContent>
+    <DialogContent>
+        <MudForm @bind-IsValid="@success">
+            <MudSwitch @bind-Value="entity.IsPublic" Color="Color.Primary" Label="Публикация" />
+            @if (!string.IsNullOrWhiteSpace(entity.LastTgSentError))
+            {
+                <MudField Label="Ошибка при отправке через Tg" Underline="false">
+                    <MudIcon Icon="@Icons.Material.Filled.Error" Color="@Color.Error" />
+                    @entity.LastTgSentError
+
+                    <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="()=>entity.LastTgSentError = null">Сбросить</MudButton>
+                </MudField>
+            }
+
+
+            <MudTextField @bind-Value="entity.Title" Label="Название" Underline="false" />
+
+            <MudTimePicker Label="Время начала" Editable="true" @bind-Time="entity.HappeningTime" />
+
+            @* <MudField Label="Текст" Underline="false">
+                <div id="@quillContainerName">
+                    @((MarkupString)entity.Body)
+                </div>
+            </MudField> *@
+
+            <MudTextField @bind-Value="entity.Body" Label="Текст" Underline="true" Lines="5" Required="true" />
+            <MudLink Href="https://core.telegram.org/bots/api#html-style" Target="_blank" Style="font-size:small;">Допустимое форматирование в Telegram</MudLink>
+
+            <MudAutocomplete T="Place" Label="Место" @bind-Value="entity.Place"
+                             SearchFunc="@SearchPlace" ToStringFunc="@(e=> e == null?null : e.Name)" />
+                             <div style="min-height:5ch"></div>
+            <MudStack Row="true" Wrap="Wrap.Wrap">
+                <MudDatePicker PickerVariant="PickerVariant.Static" @bind-Date="entity.HappeningDateStart" Label="Дата" Required="true" />
+                <MudDatePicker PickerVariant="PickerVariant.Static" @bind-Date="entity.HappeningDateEnd" Label="Дата окончания" Clearable="true" />
+            </MudStack>
+            @* <MudField Label="Даты" Underline="false">
+            <MudDateRangePicker PickerVariant="PickerVariant.Static" @bind-DateRange="@dateRange" Margin="Margin.None" Culture="@cultureInfo" />
+        </MudField> *@
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit" Disabled="@(!success)">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    bool @success;
+    [CascadingParameter]
+    private MudDialogInstance MudDialog { get; set; }
+
+    [Parameter]
+    public Event entity { get; set; } = new Event();
+
+    CultureInfo cultureInfo = CultureInfo.GetCultureInfo("ru-RU");
+
+    //string quillContainerName = "quill-container-Events";
+
+    // private DateRange dateRange
+    // {
+    //     get
+    //     {
+    //         return new DateRange(entity.HappeningDateStart, entity.HappeningDateEnd);
+    //     }
+    //     set
+    //     {
+    //         if (value != null && value.End.HasValue && value.Start.HasValue)
+    //         {
+    //             entity.HappeningDateStart = value.Start.Value;
+    //             entity.HappeningDateEnd = value.End.Value;
+    //         }
+    //     }
+    // }
+
+    // protected override async Task OnParametersSetAsync()
+    // {
+    //     await this.QuillHtml.LoadHTMLContent(entity.Body);
+    //     await base.OnParametersSetAsync();
+    // }
+
+    // protected override async Task OnAfterRenderAsync(bool firstRender)
+    // {
+    //     if (firstRender)
+    //     {
+    //         await JS.InvokeVoidAsync("initializeQuill", $"#{quillContainerName}");
+    //     }
+    // }
+
+    // private async Task Submit()  {
+    //     entity.Body = await JS.InvokeAsync<string>("getQuillContent", $"#{quillContainerName}");
+    //     Regex regex = new Regex(@"^\s*<p>\s*<br>\s*<\/p>\s*$");
+    //     if (regex.IsMatch(entity.Body))
+    //         entity.Body = String.Empty;
+    //     MudDialog.Close(DialogResult.Ok(entity));
+    // }
+
+    private async Task Submit()
+    {
+        MudDialog.Close(DialogResult.Ok(entity));
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+
+    private async Task<IEnumerable<Place>> SearchPlace(string value, CancellationToken token)
+    {
+        PlaceFilter placeFilter = new PlaceFilter
+            {
+                Substring = value,
+                IsPublic = true
+            };
+        var result = await placeLogic.Read(15, 0, placeFilter, "Name", false);
+
+        return result.Item1;
+    }
+}

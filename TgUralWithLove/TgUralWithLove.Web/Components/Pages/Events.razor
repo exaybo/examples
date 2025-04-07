@@ -1,0 +1,289 @@
+﻿@page "/events"
+@using Logics
+@using Logics.Entities
+@using Logics.Filters
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using MudBlazor
+@using System.Globalization
+@using TgUralWithLove.Web.Components.Dialogs
+
+@inject IDialogService DialogService
+@inject EventLogic entityLogic
+@rendermode InteractiveServer
+
+
+<PageTitle>Events</PageTitle>
+
+<h1>События</h1>
+<AuthorizeView Roles="Admin">
+    <NotAuthorized>
+        Раздел администрирования
+    </NotAuthorized>
+
+    <Authorized>
+
+        @if (!isDataLoaded)
+        {
+            <MudSkeleton />
+            <MudSkeleton SkeletonType="SkeletonType.Circle" Width="50px" Height="50px" />
+            <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="110px" />
+        }
+        else
+        {
+            <MudDialogProvider />
+            <MudPopoverProvider />
+
+
+            <MudFab StartIcon="@Icons.Material.Filled.Add"
+                    Color="Color.Primary"
+                    Style="position: fixed; bottom: 16px; right: 16px; z-index: 1000"
+                    OnClick="() => OnEditEntity(null)" />
+
+            <MudStack Row="false">
+
+                <MudPaper Class="filter-panel" Style="padding:4pt;">
+                    <MudStack Row="true" Wrap="Wrap.Wrap" AlignItems="AlignItems.Start">
+
+                        <MudTextField @bind-Value="filterString" Placeholder="название" />
+
+                        <MudSelect T="string" @bind-Value="filterPublicity" Style="min-width: 15ch;">
+                            <MudSelectItem Value="@("All")">
+                                <MudIcon Icon="@Icons.Material.Filled.Visibility" Color="Color.Success" /> <strong>&</strong>
+                                <MudIcon Icon="@Icons.Material.Filled.DisabledVisible" Color="Color.Warning" />
+                            </MudSelectItem>
+                            <MudSelectItem Value="@("Published")">
+                                <MudIcon Icon="@Icons.Material.Filled.Visibility" Color="Color.Success" Class="publicationMark" />
+                            </MudSelectItem>
+                            <MudSelectItem Value="@("Hidden")">
+                                <MudIcon Icon="@Icons.Material.Filled.DisabledVisible" Color="Color.Warning" Class="publicationMark" />
+                            </MudSelectItem>
+                        </MudSelect>
+
+                        <MudSelect T="string" @bind-Value="sortValue" Style="min-width: 15ch;">
+                            <MudSelectItem Value="@("Created")">
+                                Создано
+                                <MudIcon Icon="@Icons.Material.Filled.Sort" Style="transform: scaleY(-1);" />
+                            </MudSelectItem>
+                            <MudSelectItem Value="@("Created_Desc")">
+                                Создано
+                                <MudIcon Icon="@Icons.Material.Filled.Sort" />
+                            </MudSelectItem>
+                            <MudSelectItem Value="@("Title")">
+                                Название
+                                <MudIcon Icon="@Icons.Material.Filled.Sort" Style="transform: scaleY(-1);" />
+                            </MudSelectItem>
+                            <MudSelectItem Value="@("Title_Desc")">
+                                Название
+                                <MudIcon Icon="@Icons.Material.Filled.Sort" />
+                            </MudSelectItem>
+                            <MudSelectItem Value="@("IsPublic")">
+                                Публикация
+                                <MudIcon Icon="@Icons.Material.Filled.Sort" Style="transform: scaleY(-1);" />
+                            </MudSelectItem>
+                            <MudSelectItem Value="@("IsPublic_Desc")">
+                                Публикация
+                                <MudIcon Icon="@Icons.Material.Filled.Sort" />
+                            </MudSelectItem>
+                        </MudSelect>
+                        
+                        <MudDateRangePicker PlaceholderStart="даты от" PlaceholderEnd="и до" PickerVariant="PickerVariant.Inline" @bind-DateRange="@filterDateRange"
+                                            Margin="Margin.None" Culture="@cultureInfo" Clearable="true" />
+                                            <MudSpacer/>
+                        <MudIconButton Icon="@Icons.Material.Filled.FilterAlt" Color="Color.Default" Size="Size.Small" OnClick="async () => await virtualize.RefreshDataAsync()" />
+                        <MudIconButton Icon="@Icons.Material.Filled.FilterAltOff" Color="Color.Default" Size="Size.Small" OnClick="async () => await OnFilterClean()" />
+
+                    </MudStack>
+                </MudPaper>
+
+                <MudSpacer />
+
+                <Virtualize @ref="virtualize" Context="entity" ItemsProvider="LoadEntities">
+                    <ItemContent>
+                        <MudCard Elevation="0">
+                            <MudCardHeader>
+                                <CardHeaderContent>
+                                    <MudText Typo="Typo.h6">
+                                        @entity.Title
+                                    </MudText>
+                                </CardHeaderContent>
+                                <CardHeaderActions>
+                                    @if (entity.IsPublic)
+                                    {
+                                        <MudIcon Icon="@Icons.Material.Filled.Visibility" Color="Color.Success" Class="publicationMark" />
+                                    }
+                                    else
+                                    {
+                                        <MudIcon Icon="@Icons.Material.Filled.DisabledVisible" Color="Color.Warning" Class="publicationMark" />
+                                    }
+                                    <MudFab Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Delete" OnClick="() => OnDeleteEntity(entity)" Size="Size.Small" />
+                                    <MudFab Color="Color.Tertiary" StartIcon="@Icons.Material.Filled.Edit" OnClick="() => OnEditEntity(entity)" Size="Size.Small" />
+                                </CardHeaderActions>
+                            </MudCardHeader>
+                            <MudCardContent>
+                                <MudField Underline="false">
+                                    @((MarkupString)entity.Body)
+                                </MudField>
+                                @if (entity.HappeningTime.HasValue)
+                                {
+                                    <MudField Underline="false" Label="Время начала">
+                                        @entity.HappeningTime.Value.ToString(@"hh\:mm")
+                                    </MudField>
+                                }
+
+                                @if (entity.HappeningDateStart.HasValue)
+                                {
+                                    <MudField Label="Дата" Underline="false">
+                                        @entity.HappeningDateStart.Value.ToString("d", new System.Globalization.CultureInfo("ru-RU"))
+                                        @if (entity.HappeningDateEnd.HasValue)
+                                        {
+                                            <span>&nbsp;-&nbsp;</span>
+                                            @entity.HappeningDateEnd.Value.ToString("d", new System.Globalization.CultureInfo("ru-RU"))
+                                        }
+                                    </MudField>
+                                }
+                                @if (entity.Place != null)
+                                {
+                                    <MudField Label="Место" Underline="false">@entity.Place.Name</MudField>
+                                    <MudField Label="Адрес" Underline="false">@entity.Place.Address</MudField>
+                                    @if (@entity.Place.GeoLatitude.HasValue && @entity.Place.GeoLongitude.HasValue)
+                                    {
+                                        <MudField Label="Координаты (lat,lon)" Underline="false">
+                                            @entity.Place.GeoLatitude.Value.ToString("F5"),@entity.Place.GeoLongitude.Value.ToString("F5")
+                                        </MudField>
+                                    }
+                                }
+                                @if (!string.IsNullOrWhiteSpace(entity.LastTgSentError))
+                                {
+                                    <MudField Label="Ошибка при отправке через Tg" Underline="false">
+                                        <MudIcon Icon="@Icons.Material.Filled.Error" Color="@Color.Error" />
+                                        @entity.LastTgSentError
+                                    </MudField>
+                                }
+                            </MudCardContent>
+                        </MudCard>
+
+
+                    </ItemContent>
+                    <Placeholder>
+                        <p>
+                            Loading&hellip;
+                        </p>
+                    </Placeholder>
+                    <EmptyContent>
+                        <p>
+                            There are no strings to display.
+                        </p>
+                    </EmptyContent>
+                </Virtualize>
+            </MudStack>
+        }
+
+    </Authorized>
+</AuthorizeView>
+
+@code {
+    private bool isDataLoaded { get; set; } = false;
+
+    private GridItemsProvider<Event>? entityProvider;
+
+    Virtualize<Event> virtualize;
+
+    string filterString { get; set; }
+    DateRange filterDateRange { get; set; }
+    string sortValue { get; set; } = "Created_Desc";
+    string filterPublicity { get; set; } = "All";
+
+    CultureInfo cultureInfo = CultureInfo.GetCultureInfo("ru-RU");
+
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+        if (firstRender)
+        {
+            isDataLoaded = true;
+            StateHasChanged();
+        }
+    }
+
+    private async ValueTask<ItemsProviderResult<Event>> LoadEntities(
+        ItemsProviderRequest req)
+    {
+
+        int? take = req.Count;
+        int? skip = req.StartIndex;
+
+        string? orderField = null;
+        bool isDesc = false;
+        if (!string.IsNullOrEmpty(sortValue))
+        {
+            orderField = sortValue.Split("_").FirstOrDefault();
+            isDesc = sortValue.Contains("_Desc");
+        }
+
+        EventFilter eventFilter = new EventFilter()
+            {
+                Substring = filterString
+            };
+        if (filterPublicity != "All")
+            eventFilter.IsPublic = filterPublicity == "Published";
+        if (filterDateRange != null)
+        {
+            eventFilter.PeriodStart = filterDateRange.Start;
+            eventFilter.PeriodEnd = filterDateRange.End;
+        }
+
+        var events = (await entityLogic.Read(take, skip, filter: eventFilter, orderField: orderField, orderDesk: isDesc));
+
+
+
+        return new ItemsProviderResult<Event>(events.Item1, (int)events.Item2);
+    }
+
+    private async Task OnEditEntity(Event entity)
+    {
+        if (entity == null)
+            entity = new Event();
+
+        var options = new DialogOptions { CloseOnEscapeKey = true };
+        var parameters = new DialogParameters<EventsDialog> { { x => x.entity, entity } };
+
+        var dialog = await DialogService.ShowAsync<EventsDialog>("Event Dialog", parameters, options);
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            await entityLogic.UpdateOrCreate(entity);
+        }
+
+        await virtualize.RefreshDataAsync();
+    }
+
+    private async Task OnDeleteEntity(Event entity)
+    {
+        if (entity == null)
+            throw new ArgumentException();
+
+        bool? result = await DialogService.ShowMessageBox(
+            "Внимание!",
+        $"Удалить {entity.Title}?",
+            yesText: "Удалить", cancelText: "Отмена");
+        if (result == true)
+        {
+            await entityLogic.Delete(entity.Id);
+            await virtualize.RefreshDataAsync();
+        }
+    }
+
+    async Task OnFilterClean()
+    {
+        filterString = null;
+        filterDateRange = null;
+        sortValue = "Created_Desc";
+        filterPublicity = "All";
+        await virtualize.RefreshDataAsync();
+    }
+
+}

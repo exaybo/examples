@@ -1,0 +1,105 @@
+﻿@using Logics.Entities
+@using MudBlazor
+@using System.Globalization
+@using System.Text.RegularExpressions
+@inject IDialogService DialogService
+@* @inject IJSRuntime JS *@
+
+<MudDialog Style="min-width:80%">
+    <TitleContent>
+        Place
+    </TitleContent>
+    <DialogContent>
+        <MudForm @bind-IsValid="@success">
+            <MudSwitch @bind-Value="place.IsPublic" Color="Color.Primary" Label="Публикация" />
+
+            @if (!string.IsNullOrWhiteSpace(place.LastTgSentError))
+            {
+                <MudField Label="Ошибка при отправке через Tg" Underline="false">
+                    <MudIcon Icon="@Icons.Material.Filled.Error" Color="@Color.Error" />
+                    @place.LastTgSentError
+
+                    <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="()=>place.LastTgSentError = null">Сбросить</MudButton>
+                </MudField>
+            }
+
+
+            <MudTextField T="string" @bind-Value="place.Name" Label="Название" Underline="false" Required="true" RequiredError="Требуется!" />
+            <MudTextField T="string" @bind-Value="place.Address" Label="Адрес" Underline="false" Required="true" RequiredError="Требуется!" />
+
+            <MudTextField T="string" @bind-Value="UrlString" Label="Вспомогательное поле для извлечения Lat,Lon из URL содержащего строку вида 12.3456,54.3423" Underline="false" />
+            <MudTextField @bind-Value="place.GeoLatitude" Label="Latitude (12.3456)" Underline="false" />
+            <MudTextField @bind-Value="place.GeoLongitude" Label="Longitude (12.3456)" Underline="false"  />
+
+            @* <MudField Label="Текст" Underline="false">
+            <div id="@quillContainerName">
+                @((MarkupString)place.Description)
+            </div>
+        </MudField> *@
+
+            <MudLink Href="https://core.telegram.org/bots/api#html-style" Target="_blank" Style="font-size:small;">Допустимое форматирование в Telegram</MudLink>
+            <MudTextField @bind-Value="place.Description" Label="Описание" Underline="true" Lines="5" />
+            
+
+        </MudForm>
+
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit" Disabled="@(!success)">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    bool success;
+
+    [CascadingParameter]
+    private MudDialogInstance MudDialog { get; set; }
+
+    [Parameter]
+    public Place place { get; set; } = new Place();
+
+    string UrlString
+    {
+        get
+        {
+            return string.Empty;
+        }
+        set
+        {
+            Regex latlonRegex = new Regex(@"(-{0,1}\d{1,3}\.\d{3,8})\s*,\s*(-{0,1}\d{1,3}\.\d{3,8})");
+            Match m = latlonRegex.Match(value);
+            if (m.Success)
+            {
+                place.GeoLatitude = Double.Parse(m.Groups[1].Value);
+                place.GeoLongitude = Double.Parse(m.Groups[2].Value);
+            }
+        }
+    }
+
+    // string quillContainerName = "quill-container-Places";
+
+    // protected override async Task OnAfterRenderAsync(bool firstRender)
+    // {
+    //     if (firstRender)
+    //     {
+    //         await JS.InvokeVoidAsync("initializeQuill", $"#{quillContainerName}");
+    //     }
+    // }
+
+    private async Task Submit()
+    {
+        // //<p><br></p>  - это должно быть пустой строкой
+        // place.Description = await JS.InvokeAsync<string>("getQuillContent", $"#{quillContainerName}");
+        // Regex regex = new Regex(@"^\s*<p>\s*<br>\s*<\/p>\s*$");
+        // if (regex.IsMatch(place.Description))
+        //     place.Description = String.Empty;
+
+
+        MudDialog.Close(DialogResult.Ok(place));
+    }
+
+
+    private void Cancel() => MudDialog.Cancel();
+
+}

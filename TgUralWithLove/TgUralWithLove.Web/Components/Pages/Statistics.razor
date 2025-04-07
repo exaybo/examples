@@ -1,0 +1,148 @@
+﻿@page "/statistics"
+@using Logics.Statistics
+@using Logics.Statistics.Entities
+@using Microsoft.AspNetCore.Components.Authorization
+@using MudBlazor
+@using static Logics.LogicConstants
+
+@inject UseStatLogic useStatLogic
+@rendermode InteractiveServer
+
+<h3>Statistics</h3>
+
+<AuthorizeView Roles="Admin">
+    <NotAuthorized>
+        Раздел администрирования
+    </NotAuthorized>
+
+    <Authorized>
+
+        @if (!isDataLoaded)
+        {
+            <MudSkeleton />
+            <MudSkeleton SkeletonType="SkeletonType.Circle" Width="50px" Height="50px" />
+            <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="110px" />
+        }
+        else
+        {
+            <MudStack Row="false">
+                <MudButton Color="Color.Primary" OnClick="Reload" Variant="Variant.Filled" Style="width:30ch">Обновить</MudButton>
+
+                <MudSpacer />
+
+                <MudField Label="Общее количество клиентов бота">
+                    <MudText>@TotalUsers</MudText>
+                </MudField>
+
+                <MudSpacer />
+
+                <MudField Label="Единицы периода" Underline="false">
+                    <MudRadioGroup Value="PeriodKindSelector" T="PeriodKinds" ValueChanged="OnPeriodKindChanged">
+                        <MudRadio Value="@(PeriodKinds.Day)" Color="Color.Primary">Дни</MudRadio>
+                        <MudRadio Value="@(PeriodKinds.Month)" Color="Color.Secondary">Месяцы</MudRadio>
+                    </MudRadioGroup>
+                </MudField>
+
+                <MudSpacer />
+
+                <MudField Label="Использование команд бота за период">
+
+                    <MudChart ChartType="ChartType.StackedBar"
+                    ChartSeries="@CommandCharts"
+                    XAxisLabels="@CommandsXAxis"
+                    Width="100%"
+                    Height="50vh"
+                    ChartOptions="new ChartOptions{ YAxisTicks = 10}" />
+
+                </MudField>
+
+                <MudSpacer />
+
+                <MudField Label="Новых пользователей за период">
+                    <MudChart ChartType="ChartType.Bar"
+                    ChartSeries="@NewUsersCharts"
+                    XAxisLabels="@CommandsXAxis"
+                    Width="100%"
+                    Height="50vh"
+                    ChartOptions="new ChartOptions{ YAxisTicks = 10, ShowLegend = false}" />
+
+                </MudField>
+            </MudStack>
+        }
+
+    </Authorized>
+</AuthorizeView>
+
+@code {
+    private bool isDataLoaded { get; set; } = false;
+
+    PeriodKinds PeriodKindSelector { get; set; } = PeriodKinds.Day;
+
+    public int TotalUsers;
+
+    public List<ChartSeries> CommandCharts = new List<ChartSeries>();
+    public string[] CommandsXAxis = { };
+    public List<ChartSeries> NewUsersCharts = new List<ChartSeries>();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+        if (firstRender)
+        {
+            isDataLoaded = true;
+
+            await Reload();
+
+            StateHasChanged();
+        }
+
+    }
+
+    private async Task OnPeriodKindChanged(PeriodKinds value)
+    {
+        PeriodKindSelector = (PeriodKinds)value; // Обновляем значение
+        await Reload();
+    }
+
+    async Task Reload()
+    {
+        //commands
+        List<ChartSeries> lch = new List<ChartSeries>();
+        var comms = await useStatLogic.GetActionsPerDayBack(DateTime.UtcNow, 7, PeriodKindSelector);
+
+        foreach (var tpl in comms)
+        {
+            lch.Add(new ChartSeries
+                {
+                    Name = tpl.Item1,
+                    Data = tpl.Item2.ToArray()
+                });
+        }
+        CommandCharts = lch;
+
+        //axis
+        var axisX = useStatLogic.GetDatesAxis(DateTime.UtcNow, 7, PeriodKindSelector);
+        List<string> axisXValNames = null;
+        switch(PeriodKindSelector)
+        {
+            case PeriodKinds.Day: axisXValNames = axisX.Select(x => x.ToString("dd/MM")).ToList(); break;
+            case PeriodKinds.Month: axisXValNames = axisX.Select(x => x.ToString("MMM")).ToList(); break;
+        }
+
+
+        CommandsXAxis = axisXValNames.ToArray();
+
+        //total users
+        TotalUsers = await useStatLogic.GetTotalUsers();
+
+        //newusers
+        List<ChartSeries> lu = new List<ChartSeries>();
+        var nusers = await useStatLogic.GetNewCustomers(DateTime.UtcNow, 7, PeriodKindSelector);
+        lu.Add(new ChartSeries()
+            {
+                Data = nusers.ToArray()
+            });
+        NewUsersCharts = lu;
+    }
+
+}

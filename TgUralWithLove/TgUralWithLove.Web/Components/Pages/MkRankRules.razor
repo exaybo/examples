@@ -1,0 +1,173 @@
+﻿@page "/rankrules"
+@using Logics
+@using Logics.Entities
+@using Logics.Entities.Ranking
+@using Logics.Filters
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using MudBlazor
+@using System.Globalization
+@using TgUralWithLove.Web.Components.Dialogs
+
+@inject IDialogService DialogService
+@inject MkRankRuleLogic entityLogic
+@inject MkEventWrapperLogic mkEventWrapperLogic
+@rendermode InteractiveServer
+
+
+<PageTitle>Rank rules</PageTitle>
+
+<h1>Правила ранжирования</h1>
+<AuthorizeView Roles="Admin">
+    <NotAuthorized>
+        Раздел администрирования
+    </NotAuthorized>
+
+    <Authorized>
+
+        @if (!isDataLoaded)
+        {
+            <MudSkeleton />
+            <MudSkeleton SkeletonType="SkeletonType.Circle" Width="50px" Height="50px" />
+            <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="110px" />
+        }
+        else
+        {
+            <MudDialogProvider />
+            <MudPopoverProvider />
+
+
+            <MudStack Row="false">
+
+                <Virtualize @ref="virtualize" Context="entity" ItemsProvider="LoadEntities">
+                    <ItemContent>
+                        <MudCard Elevation="0">
+                            <MudCardHeader>
+                                <CardHeaderContent>
+                                    @entity.Created.ToString("dd.MM.yyyy HH:mm")
+                                </CardHeaderContent>
+                                <CardHeaderActions>
+                                    <MudFab Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Delete" OnClick="() => OnDeleteEntity(entity)" Size="Size.Small" />
+                                </CardHeaderActions>
+                            </MudCardHeader>
+                            <MudCardContent>
+                                <MudField Label="Фильтры">
+                                    <MudStack Row="true">
+                                        @if (!string.IsNullOrWhiteSpace(entity.NameDescrPattern))
+                                        {
+                                            <MudField Underline="false" Label="Шаблон имени-описания">
+                                                @entity.NameDescrPattern
+                                            </MudField>
+                                        }
+                                        <MudSpacer />
+                                        @if (!string.IsNullOrWhiteSpace(entity.TagPattern))
+                                        {
+                                            <MudField Underline="false" Label="Шаблон тегов">
+                                                @entity.TagPattern
+                                            </MudField>
+                                        }
+                                        <MudSpacer />
+                                        @if (!string.IsNullOrWhiteSpace(entity.CategoryPattern))
+                                        {
+                                            <MudField Underline="false" Label="Шаблон категорий">
+                                                @entity.CategoryPattern
+                                            </MudField>
+                                        }
+                                        <MudSpacer />
+                                        @if (entity.OrganizationId.HasValue)
+                                        {
+                                            <MudField Underline="false" Label="Id организации">
+                                                @entity.OrganizationId
+                                            </MudField>
+                                        }
+                                    </MudStack>
+                                </MudField>
+                                <MudField Label="Действия">
+                                    <MudStack Row="true">
+                                        @if (entity.Rank.HasValue)
+                                        {
+                                            <MudField Underline="false" Label="Rank">
+                                                @entity.Rank
+                                            </MudField>
+                                        }
+                                        <MudSpacer />
+                                        @if (entity.Ban == true)
+                                        {
+                                            <MudField Underline="false" Label="Бан">
+                                                @entity.Ban
+                                            </MudField>
+                                        }
+                                    </MudStack>
+                                </MudField>
+                            </MudCardContent>
+                        </MudCard>
+
+
+                    </ItemContent>
+                    <Placeholder>
+                        <p>
+                            Loading&hellip;
+                        </p>
+                    </Placeholder>
+                    <EmptyContent>
+                        <p>
+                            There are no strings to display.
+                        </p>
+                    </EmptyContent>
+                </Virtualize>
+            </MudStack>
+        }
+
+    </Authorized>
+</AuthorizeView>
+
+@code {
+    private bool isDataLoaded { get; set; } = false;
+
+    Virtualize<MkRankRule> virtualize;
+
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+        if (firstRender)
+        {
+            isDataLoaded = true;
+            StateHasChanged();
+        }
+    }
+
+    private async ValueTask<ItemsProviderResult<MkRankRule>> LoadEntities(
+        ItemsProviderRequest req)
+    {
+
+        int? take = req.Count;
+        int? skip = req.StartIndex;
+
+        var events = (await entityLogic.Read(take, skip, filter: null, orderField: null, orderDesk: true));
+
+
+
+        return new ItemsProviderResult<MkRankRule>(events.Item1, (int)events.Item2);
+    }
+
+
+    private async Task OnDeleteEntity(MkRankRule entity)
+    {
+        if (entity == null)
+            throw new ArgumentException();
+
+        bool? result = await DialogService.ShowMessageBox(
+            "Внимание!",
+        $"Удалить {entity.Id}?",
+            yesText: "Удалить", cancelText: "Отмена");
+        if (result == true)
+        {
+            //применить-откатить правило к набору ивентов
+            await mkEventWrapperLogic.ApplyRankRule(entity, true);
+
+            await virtualize.RefreshDataAsync();
+        }
+    }
+
+}

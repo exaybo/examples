@@ -1,0 +1,341 @@
+﻿@page "/mkrfevents"
+@using Logics
+@using Logics.Entities
+@using Logics.Entities.Mkrf
+@using Logics.Entities.Ranking
+@using Logics.Filters
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using MudBlazor
+@using System.Globalization
+@using TgUralWithLove.Web.Components.Dialogs
+
+@inject IDialogService DialogService
+@inject MkEventWrapperLogic entityLogic
+@rendermode InteractiveServer
+
+
+<PageTitle>Open data events</PageTitle>
+
+<h1>События из открытых данных mkrf</h1>
+<AuthorizeView Roles="Admin">
+    <NotAuthorized>
+        Раздел администрирования
+    </NotAuthorized>
+
+    <Authorized>
+
+        @if (!isDataLoaded)
+        {
+            <MudSkeleton />
+            <MudSkeleton SkeletonType="SkeletonType.Circle" Width="50px" Height="50px" />
+            <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="110px" />
+        }
+        else
+        {
+            <MudDialogProvider />
+            <MudPopoverProvider />
+
+
+            <MudStack Row="false">
+
+                <MudPaper Class="filter-panel" Style="padding:4pt;">
+                    <MudStack Row="true" Wrap="Wrap.Wrap" AlignItems="AlignItems.Start">
+
+                        <MudTextField @bind-Value="addressString" Placeholder="Адрес" />
+                        <MudTextField @bind-Value="filterString" Placeholder="Имя, описание" />
+
+                        <MudSelect T="string" @bind-Value="filterPublicity" Style="min-width: 15ch;">
+                            <MudSelectItem Value="@("All")">
+                                <MudIcon Icon="@Icons.Material.Filled.Visibility" Color="Color.Success" /> <strong>&</strong>
+                                <MudIcon Icon="@Icons.Material.Filled.DisabledVisible" Color="Color.Warning" />
+                            </MudSelectItem>
+                            <MudSelectItem Value="@("Published")">
+                                <MudIcon Icon="@Icons.Material.Filled.Visibility" Color="Color.Success" Class="publicationMark" />
+                            </MudSelectItem>
+                            <MudSelectItem Value="@("Hidden")">
+                                <MudIcon Icon="@Icons.Material.Filled.DisabledVisible" Color="Color.Warning" Class="publicationMark" />
+                            </MudSelectItem>
+                        </MudSelect>
+
+                        <MudDateRangePicker PlaceholderStart="даты от" PlaceholderEnd="и до" PickerVariant="PickerVariant.Inline" @bind-DateRange="@filterDateRange"
+                                            Margin="Margin.None" Culture="@cultureInfo" Clearable="true" />
+                        <MudSpacer />
+                        <MudIconButton Icon="@Icons.Material.Filled.FilterAlt" Color="Color.Primary" Size="Size.Small" OnClick="async () => await virtualize.RefreshDataAsync()" />
+                        <MudIconButton Icon="@Icons.Material.Filled.FilterAltOff" Color="Color.Primary" Size="Size.Small" OnClick="async () => await OnFilterClean()" />
+
+                    </MudStack>
+                    <MudStack Row="true" Wrap="Wrap.Wrap" AlignItems="AlignItems.Start">
+                        <MudText>Ранжирование. Селектор:</MudText>
+                        <MudTextField @bind-Value="mkRankRuleTpl.NameDescrPattern" Placeholder="шаблон имя-описание" />
+                        <MudText>&</MudText>
+                        <MudTextField @bind-Value="mkRankRuleTpl.TagPattern" Placeholder="шаблон тэг" />
+                        <MudText>&</MudText>
+                        <MudTextField @bind-Value="mkRankRuleTpl.CategoryPattern" Placeholder="шаблон категории" />
+                        <MudText>&</MudText>
+                        <MudTextField T="long?" @bind-Value="mkRankRuleTpl.OrganizationId" Placeholder="id организации" />
+                        <MudSpacer />
+
+                    </MudStack>
+                    <MudStack Row="true" Wrap="Wrap.Wrap" AlignItems="AlignItems.Start">
+                        <MudText>Ранжирование. Действие:</MudText>
+                        <MudTextField T="int?" @bind-Value="mkRankRuleTpl.Rank" Placeholder="rank +/-" />
+                        <MudSwitch @bind-Value="mkRankRuleTpl.Ban" Color="Color.Error" Label="ban!" />
+                        <MudSpacer />
+                        <MudIconButton Icon="@Icons.Material.Filled.FormatPaint" Color="Color.Primary" Size="Size.Medium" OnClick="async () => await virtualize.RefreshDataAsync()" />
+                        <MudIconButton Icon="@Icons.Material.Filled.FormatColorReset" Color="Color.Primary" Size="Size.Medium" OnClick="async () => RankTemplateClear()" />
+
+                        <MudIconButton Icon="@Icons.Material.Filled.PlaylistAddCircle" Color="Color.Primary"
+                                       Size="Size.Medium" OnClick="async () => await CreateRankRule()" />
+                    </MudStack>
+                </MudPaper>
+
+                <MudSpacer />
+                <MudTextField @ref="foundCoundVisualizer" Label="Найдено элементов" Underline="false" Value="@foundCount"></MudTextField>
+                <MudSpacer />
+
+                <Virtualize @ref="virtualize" Context="entity" ItemsProvider="LoadEntities">
+                    <ItemContent>
+                        <MudCard Elevation="1" Style="@(entity.rankingMark == true ? "background-color: #FFCA28;" : "background-color: inherit;")">
+                            <MudCardHeader>
+                                <CardHeaderContent>
+                                    <MudText Typo="Typo.h6">
+                                        @entity.mkEvent.name
+                                    </MudText>
+                                </CardHeaderContent>
+                                <CardHeaderActions>
+                                    @if (entity.rank != 0)
+                                    {
+                                        <MudIcon Icon="@Icons.Material.Filled.StarBorderPurple500" />
+                                        <span>@entity.rank</span>
+                                    }
+
+                                    @if (entity.banCount > 0)
+                                    {
+                                        <MudIcon Icon="@Icons.Material.Filled.CommentsDisabled" Color="Color.Error" Class="publicationMark" />
+                                    }
+
+                                    <MudToggleIconButton Toggled="entity.IsPublic"
+                                                         ToggledChanged="(isToggled) => OnIsPublicToggled(isToggled, entity)"
+                                                         Icon="@Icons.Material.Filled.DisabledVisible"
+                                                         Color="@Color.Warning"
+                                                         ToggledIcon="@Icons.Material.Filled.Visibility"
+                                                         ToggledColor="@Color.Success" />
+
+                                </CardHeaderActions>
+                            </MudCardHeader>
+                            <MudCardContent>
+                                <MudField Underline="false" Label="Краткое описание">
+                                    @((MarkupString)entity?.mkEvent?.ShortDescription)
+                                </MudField>
+
+                                <MudField Underline="false" Label="Описание">
+                                    @((MarkupString)entity?.mkEvent?.description)
+                                </MudField>
+
+                                @if (entity.mkEvent?.HappeningDate != null)
+                                {
+                                    <MudTextField Underline="false" Label="Дата события" Value="@entity.mkEvent.HappeningDate" />
+                                }
+
+                                @if (entity.mkEvent?.category?.name != null)
+                                {
+                                    <MudTextField Underline="false" Label="Категория события" Value="@entity.mkEvent.category.name" />
+                                }
+
+                                @if (entity.mkEvent?.seances != null)
+                                {
+                                    <MudField Underline="false" Label="Расписание">
+                                        <MudStack Row="true">
+                                            @foreach (MkSeance s in entity.mkEvent.seances)
+                                            {
+                                                <MudText>@s.HappeningTime</MudText>
+                                                <MudSpacer />
+                                            }
+                                        </MudStack>
+                                    </MudField>
+                                }
+
+                                @if (entity.mkEvent?.tags != null)
+                                {
+                                    <MudField Underline="false" Label="Тэги">
+                                        <MudStack Row="true">
+                                            @foreach (MkTag s in entity.mkEvent.tags)
+                                            {
+                                                <MudText>@s.name</MudText>
+                                                <MudSpacer />
+                                            }
+                                        </MudStack>
+                                    </MudField>
+                                }
+
+                                @if (entity.mkEvent?.organization != null)
+                                {
+                                    <MudField Underline="false" Label="Организация">
+                                        <MudStack Row="true">
+                                            <MudText>@entity.mkEvent?.organization.name</MudText>
+                                            <MudSpacer />
+                                            <MudText>id: @entity.mkEvent?.organization.id</MudText>
+                                        </MudStack>
+                                    </MudField>
+                                }
+
+                                @if (entity.mkEvent?.places != null)
+                                {
+                                    <MudField Underline="false" Label="Места">
+                                        <MudStack Row="false">
+                                            @foreach (MkPlace p in entity.mkEvent.places)
+                                            {
+                                                <MudTextField Label="Название" Value="p.name" />
+                                                <MudTextField Label="Адрес" Value="p.address?.fullAddress" />
+                                                <MudTextField Label="lat,lon" Value="p.address?.mapPosition?.coordString" />
+                                                @if (p.category?.name != null)
+                                                {
+                                                    <MudTextField Underline="false" Label="Категория места" Value="@p.category.name" />
+                                                }
+                                                <MudSpacer />
+                                            }
+                                        </MudStack>
+                                    </MudField>
+                                }
+
+                            </MudCardContent>
+                        </MudCard>
+
+
+                    </ItemContent>
+                    <Placeholder>
+                        <p>
+                            Loading&hellip;
+                        </p>
+                    </Placeholder>
+                    <EmptyContent>
+                        <p>
+                            There are no strings to display.
+                        </p>
+                    </EmptyContent>
+                </Virtualize>
+            </MudStack>
+        }
+
+    </Authorized>
+</AuthorizeView>
+
+@code {
+    MkRankRule mkRankRuleTpl { get; set; } = new MkRankRule();
+
+
+    private bool isDataLoaded { get; set; } = false;
+
+    Virtualize<MkEventWrapper> virtualize;
+
+    MudTextField<long?> foundCoundVisualizer;
+    long? foundCount { get; set; }
+
+    string addressString { get; set; }
+    string filterString { get; set; }
+    DateRange filterDateRange { get; set; }
+    string sortValue { get; set; } = "Created_Desc";
+    string filterPublicity { get; set; } = "All";
+    CultureInfo cultureInfo = CultureInfo.GetCultureInfo("ru-RU");
+
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+        if (firstRender)
+        {
+            isDataLoaded = true;
+            StateHasChanged();
+        }
+    }
+
+    private async ValueTask<ItemsProviderResult<MkEventWrapper>> LoadEntities(
+        ItemsProviderRequest req)
+    {
+
+        int? take = req.Count;
+        int? skip = req.StartIndex;
+
+        string? orderField = null;
+        bool isDesc = false;
+        if (!string.IsNullOrEmpty(sortValue))
+        {
+            orderField = sortValue.Split("_").FirstOrDefault();
+            isDesc = sortValue.Contains("_Desc");
+        }
+
+        MkEventWrapperFilter eventFilter = new MkEventWrapperFilter()
+            {
+                Substring = filterString,
+                Address = addressString,
+            };
+
+        if (filterDateRange != null)
+        {
+            eventFilter.PeriodStart = filterDateRange.Start;
+            eventFilter.PeriodEnd = filterDateRange.End;
+        }
+
+        if (filterPublicity != "All")
+            eventFilter.IsPublic = filterPublicity == "Published";
+        if (filterDateRange != null)
+        {
+            eventFilter.PeriodStart = filterDateRange.Start;
+            eventFilter.PeriodEnd = filterDateRange.End;
+        }
+
+        eventFilter.rankRule = mkRankRuleTpl;
+
+        var events = (await entityLogic.Read(take, skip, filter: eventFilter, orderField: orderField, orderDesk: isDesc));
+        entityLogic.MarkByTestRank(events.Item1, mkRankRuleTpl);
+
+        foundCount = events.Item2;
+        await InvokeAsync(StateHasChanged);
+
+        return new ItemsProviderResult<MkEventWrapper>(events.Item1, (int)events.Item2);
+    }
+
+    async Task OnFilterClean()
+    {
+        filterString = null;
+        filterDateRange = null;
+        sortValue = "Created_Desc";
+        filterPublicity = "All";
+        await virtualize.RefreshDataAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    async Task RankTemplateClear()
+    {
+        mkRankRuleTpl = new MkRankRule();
+
+        await virtualize.RefreshDataAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    //добавление нового правила ранка и применение его.
+    async Task CreateRankRule()
+    {
+        if ((mkRankRuleTpl.Rank ?? 0) == 0 && (mkRankRuleTpl.Ban ?? false) == false)
+        {
+            bool? result = await DialogService.ShowMessageBox(
+            "Внимание!",
+            $"Нет действий для создания правила",
+            cancelText: "Отмена");
+            return;
+        }
+        await entityLogic.ApplyRankRule(mkRankRuleTpl);
+        mkRankRuleTpl = new MkRankRule();
+
+        await virtualize.RefreshDataAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    async Task OnIsPublicToggled(bool isToggled, MkEventWrapper entity)
+    {
+        entity.IsPublic = isToggled;
+        await entityLogic.UpdateOrCreate(entity);
+        await InvokeAsync(StateHasChanged);
+    }
+}

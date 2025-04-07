@@ -1,0 +1,36 @@
+{
+  "projectPath": ".",
+  "outputPath": "aspirate-output",
+  "containerRegistry": "localhost:5000",
+  "containerImageTags": [
+    "latest"
+  ],
+  "containerBuilder": "docker",
+  "outputFormat": "compose",
+  "privateRegistryEmail": "aspir8@aka.ms",
+  "includeDashboard": true,
+  "secrets": {
+    "salt": "0B1aNytXg6rNIVyP",
+    "hash": "9XEy65ek0ZSJ1xM2ByA763j7gfgvWUFa7/nN2VAa9YA=",
+    "secrets": {
+      "mongo-password": {
+        "value": "0B1aNytXg6rNIVyPjvhFL8nvQ/V/e00RIrqcIV9nAQB2OCUVpFhEARpbFfCx9dBFZHM="
+      },
+      "mongo": {},
+      "mongodb": {},
+      "webfrontend": {
+        "ConnectionStrings__mongodb": "0B1aNytXg6rNIVyPHdNEvmyculG4GXFFuNksNwBfClZ8CSwOxDBwEjlFKKvo7vwbeE5V1x/hsYnH6KuqGlr8Qxek41DVK5FC54sflsLhwzzjYPhJ0OCcPcmkjAdgJvjzucLCG2IA9vgKFbepomliEiz0oaeV5UT1JfjGJVIcT8/zRCw="
+      },
+      "botascons": {
+        "ConnectionStrings__mongodb": "0B1aNytXg6rNIVyPHdNEvmyculG4GXFFuNksNwBfClZ8CSwOxDBwEjlFKKvo7vwbeE5V1x/hsYnH6KuqGlr8Qxek41DVK5FC54sflsLhwzzjYPhJ0OCcPcmkjAdgJvjzucLCG2IA9vgKFbepomliEiz0oaeV5UT1JfjGJVIcT8/zRCw="
+      },
+      "botasweb": {
+        "ConnectionStrings__mongodb": "0B1aNytXg6rNIVyPHdNEvmyculG4GXFFuNksNwBfClZ8CSwOxDBwEjlFKKvo7vwbeE5V1x/hsYnH6KuqGlr8Qxek41DVK5FC54sflsLhwzzjYPhJ0OCcPcmkjAdgJvjzucLCG2IA9vgKFbepomliEiz0oaeV5UT1JfjGJVIcT8/zRCw="
+      },
+      "mongodumper": {
+        "ConnectionStrings__mongodb": "0B1aNytXg6rNIVyPHdNEvmyculG4GXFFuNksNwBfClZ8CSwOxDBwEjlFKKvo7vwbeE5V1x/hsYnH6KuqGlr8Qxek41DVK5FC54sflsLhwzzjYPhJ0OCcPcmkjAdgJvjzucLCG2IA9vgKFbepomliEiz0oaeV5UT1JfjGJVIcT8/zRCw="
+      }
+    }
+  },
+  "processAllComponents": true
+}

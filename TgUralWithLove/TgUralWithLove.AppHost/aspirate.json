@@ -1,0 +1,11 @@
+{
+  "TemplatePath": null,
+  "ContainerSettings": {
+    "Registry": "localhost:5000",
+    "RepositoryPrefix": "barracuda",
+    "Tags": [
+      "latest"
+    ],
+    "Builder": "docker"
+  }
+}

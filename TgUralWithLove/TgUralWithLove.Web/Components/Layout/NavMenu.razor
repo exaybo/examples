@@ -1,0 +1,69 @@
+﻿@using Microsoft.AspNetCore.Components.Authorization
+
+
+@rendermode InteractiveServer
+
+<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="">TgUralWithLove</a>
+    </div>
+</div>
+
+<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+
+<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
+    <nav class="nav flex-column">
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                <span aria-hidden="true"></span> Home
+            </NavLink>
+        </div>
+
+        <AuthorizeView Roles="Admin">
+            <Authorized>
+                <div class="nav-item px-3" style="color:white">
+                    <span  aria-hidden="true"></span> Редактирование:
+                </div>
+
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="mkrfevents">
+                        <span aria-hidden="true"></span> События мкрф
+                    </NavLink>
+                </div>
+
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="rankrules">
+                        <span aria-hidden="true"></span> Правила мкрф
+                    </NavLink>
+                </div>
+
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="events">
+                        <span  aria-hidden="true"></span> Авторские события
+                    </NavLink>
+                </div>
+
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="places">
+                        <span  aria-hidden="true"></span> Места
+                    </NavLink>
+                </div>
+
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="statistics">
+                        <span aria-hidden="true"></span> Статистика
+                    </NavLink>
+                </div>
+
+
+            </Authorized>
+        </AuthorizeView>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="a12n">
+                <span aria-hidden="true"></span> Login
+            </NavLink>
+        </div>
+
+    </nav>
+</div>
