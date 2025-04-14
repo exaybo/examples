@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "MigApp": {
+      "commandName": "Project",
+      "commandLineArgs": "import departments.tsv departments",
+      "workingDirectory": "C:\\_PROJ\\projects\\examples\\SgTestMigTool\\MigApp\\TestData"
+    }
+  }
+}
