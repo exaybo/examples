@@ -15,7 +15,7 @@ namespace AppInfrastructure
         public AppDbContext CreateDbContext(string[] args)
         {
             var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>();
-            optionsBuilder.UseNpgsql("Server=localhost;Port=5432;Database=beats_app;User Id=beater;Password=Wr()0m-wRo0M!i/;Include Error Detail=true;")
+            optionsBuilder.UseNpgsql("Server=localhost;Port=5432;Database=sgTestStruct;User Id=admin;Password=Wr()0m-wRo0M;Include Error Detail=true;")
                 .EnableSensitiveDataLogging();
 
             return new AppDbContext(optionsBuilder.Options);
