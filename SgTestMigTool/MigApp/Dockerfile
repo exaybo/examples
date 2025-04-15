@@ -11,7 +11,6 @@ FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 COPY ["MigApp/MigApp.csproj", "MigApp/"]
-COPY ["AppInfrastructure/AppInfrastructure.csproj", "AppInfrastructure/"]
 COPY ["MigDomain/MigDomain.csproj", "MigDomain/"]
 RUN dotnet restore "./MigApp/MigApp.csproj"
 COPY . .

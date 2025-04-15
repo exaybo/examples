@@ -1,5 +1,4 @@
-﻿using AppInfrastructure;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -17,7 +16,7 @@ namespace MigApp
 
             builder.Services.AddDbContext<AppDbContext>(
                 options => options.UseNpgsql(connectionString
-                    , b => b.MigrationsAssembly("AppInfrastructure")
+                    , b => b.MigrationsAssembly("MigApp")
                     ).EnableSensitiveDataLogging()
                 , ServiceLifetime.Scoped
             );

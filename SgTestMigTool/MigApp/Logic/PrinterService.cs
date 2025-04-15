@@ -1,5 +1,4 @@
-﻿using AppInfrastructure;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using MigDomain.Entities;
 using System;
 using System.Collections.Generic;

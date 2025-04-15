@@ -1,5 +1,4 @@
-﻿using AppInfrastructure;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.Extensions.Primitives;
 using MigDomain.Entities;
