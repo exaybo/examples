@@ -6,7 +6,9 @@
       "workingDirectory": "C:\\_PROJ\\projects\\examples\\SgTestMigTool\\MigApp\\TestData"
     },
     "Container (Dockerfile)": {
-      "commandName": "Docker"
+      "commandName": "Docker",
+      "commandLineArgs": "import departments.tsv departments",
+      "containerRunArguments": "import departments.tsv departments"
     }
   }
 }

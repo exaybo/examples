@@ -11,8 +11,8 @@ namespace MigDomain.Entities
         
         public int? ParentId { get; set; }
         public int? ManagerId { get; set; }
-        public string Name { get; set; }
-        public string Phone { get; set; }
+        public string? Name { get; set; }
+        public string? Phone { get; set; }
 
         public Employee? Manager { get; set; }
         public Department? Parent { get; set; }

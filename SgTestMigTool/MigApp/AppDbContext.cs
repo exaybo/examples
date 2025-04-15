@@ -1,6 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MigDomain.Entities;
-using Npgsql;
+
+//Add-Migration Init -project MigApp -startup MigApp
+
 
 namespace MigApp
 {
@@ -23,23 +25,26 @@ namespace MigApp
                 .HasMany(e => e.Children)
                 .WithOne(e => e.Parent)
                 .HasForeignKey(d => d.ParentId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.SetNull);
 
 
             modelBuilder.Entity<Department>()
                 .HasOne(e => e.Manager)
                 .WithMany()
-                .IsRequired(false);
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.SetNull);
 
             modelBuilder.Entity<Department>()
                 .HasMany(e => e.Employees)
                 .WithOne(e => e.Department)
-                .IsRequired(false);
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.SetNull);
 
             modelBuilder.Entity<Employee>()
                 .HasOne(e => e.JobTitle)
                 .WithMany()
-                .IsRequired(false);
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.SetNull);
 
             modelBuilder.Entity<Department>()
                 .Property(b => b.Version)
@@ -50,6 +55,7 @@ namespace MigApp
             modelBuilder.Entity<JobTitle>()
                 .Property(b => b.Version)
                 .IsRowVersion();
+
         }
 
         public async Task<object> WrapInTransactionAsync(

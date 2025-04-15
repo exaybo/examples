@@ -10,6 +10,16 @@ namespace MigApp
     {
         static async Task Main(string[] args)
         {
+            //если args пуст - читаем из env
+            if (args.Length == 0)
+            {
+                string? envPrms = Environment.GetEnvironmentVariable("ARGSTR");
+                if (!string.IsNullOrWhiteSpace(envPrms))
+                {
+                    args = envPrms.Split(" ", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                }
+            }
+
             var builder = Host.CreateApplicationBuilder(args);
             
             var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");

@@ -1,0 +1,9 @@
+services:
+  migapp:
+    environment:
+      - "ConnectionStrings__DefaultConnection=Server=migdb;Port=5432;Database=migtest;User Id=migrator;Password=Wr()0m-wRo0M;Include Error Detail=true;" 
+      #- "ARGSTR=import TestData/departments.tsv departments"
+      #- "ARGSTR=import TestData/employees.tsv employees"
+      #- "ARGSTR=import TestData/jobtitles.tsv jobtitles"
+      #- "ARGSTR=print"
+      - "ARGSTR=clear"

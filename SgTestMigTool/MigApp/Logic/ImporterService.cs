@@ -32,19 +32,36 @@ namespace MigApp.Logic
                     {
                         throw new InvalidDataException("Line too long");
                     }
-                    switch (dest)
+                    if (lineNum > 0)
                     {
-                        case AppConstants.ImportDestinations.Departments: await HandleDepartment(line); break;
-                        case AppConstants.ImportDestinations.Employees: await HandleEmployee(line); break;
-                        case AppConstants.ImportDestinations.JobTitles: await HandleJobTitle(line); break;
+                        Console.WriteLine($"handle line {lineNum}: \"{line}\"");
+                        switch (dest)
+                        {
+                            case AppConstants.ImportDestinations.Departments: await HandleDepartment(line); break;
+                            case AppConstants.ImportDestinations.Employees: await HandleEmployee(line); break;
+                            case AppConstants.ImportDestinations.JobTitles: await HandleJobTitle(line); break;
+                        }                        
                     }
                 }
                 catch (Exception e)
                 {
+                    Console.WriteLine($"line {lineNum} passed because of error");
                     await Console.Error.WriteLineAsync($"Loading error: {e.ToString()}, lineNum {lineNum}, line: \"{line}\"");
                 }
                 lineNum++;
             }
+        }
+
+        internal async Task Clear()
+        {
+            await dbContext.WrapInTransactionAsync(default, async () =>
+            {
+                await dbContext.Departments.ExecuteDeleteAsync();
+                await dbContext.Employees.ExecuteDeleteAsync();
+                await dbContext.JobTitles.ExecuteDeleteAsync();
+                Console.WriteLine("cleared");
+                return 0;
+            });
         }
 
         private async Task HandleDepartment(string line)
@@ -64,8 +81,8 @@ namespace MigApp.Logic
                 //ищем существующий по имени + имя парента (если есть):
                 Department? department = await dbContext.Departments.AsQueryable()
                     .Include(e => e.Parent)
-                    .Where(e => e.Name == depName
-                        && (e.Parent == null || e.Parent.Name == parentName)
+                    .Where(e => e.Name.Equals(depName, StringComparison.OrdinalIgnoreCase)
+                        && (e.Parent == null || e.Parent.Name.Equals(parentName, StringComparison.OrdinalIgnoreCase))
                     )
                     .FirstOrDefaultAsync();
 
@@ -81,7 +98,7 @@ namespace MigApp.Logic
                     if (!string.IsNullOrWhiteSpace(parentName))
                     {
                         Department? parent = await dbContext.Departments.AsQueryable()
-                            .Where(e => e.Name == parentName)
+                            .Where(e => e.Name.Equals(parentName, StringComparison.OrdinalIgnoreCase))
                             .FirstOrDefaultAsync();
                         if (parent == null)
                         {
@@ -96,7 +113,7 @@ namespace MigApp.Logic
                 if (!string.IsNullOrWhiteSpace(managerName))
                 {
                     Employee? manager = await dbContext.Employees.AsQueryable()
-                        .Where(e => e.FullName == managerName)
+                        .Where(e => e.FullName.Equals(managerName, StringComparison.OrdinalIgnoreCase))
                         .FirstOrDefaultAsync();
 
                     if (manager == null)
@@ -127,7 +144,7 @@ namespace MigApp.Logic
             {
                 //existing?
                 Employee? employee = await dbContext.Employees.AsQueryable()
-                    .Where(e => e.FullName == name)
+                    .Where(e => e.FullName.Equals(name, StringComparison.OrdinalIgnoreCase))
                     .FirstOrDefaultAsync();
                 if (employee == null)
                 {
@@ -137,20 +154,23 @@ namespace MigApp.Logic
                 }
 
                 //ищем департмент, если нет, создаем с nulls
-                Department? department = await dbContext.Departments.AsQueryable()
-                    .Where(e => e.Name == depName)
-                    .FirstOrDefaultAsync();
-                if (department == null)
+                if (!string.IsNullOrWhiteSpace(depName))
                 {
-                    department = new Department();
-                    dbContext.Add<Department>(department);
-                    department.Name = depName;
+                    Department? department = await dbContext.Departments.AsQueryable()
+                        .Where(e => e.Name.Equals(depName, StringComparison.OrdinalIgnoreCase))
+                        .FirstOrDefaultAsync();
+                    if (department == null)
+                    {
+                        department = new Department();
+                        dbContext.Add<Department>(department);
+                        department.Name = depName;
+                    }
+                    employee.Department = department;
                 }
-                employee.Department = department;
 
                 //ищем джоб, если нет, создаем
                 JobTitle? jobTitle = await dbContext.JobTitles.AsQueryable()
-                    .Where(e => e.Name == job)
+                    .Where(e => e.Name.Equals(job, StringComparison.OrdinalIgnoreCase))
                     .FirstOrDefaultAsync();
                 if (jobTitle == null)
                 {
@@ -175,7 +195,7 @@ namespace MigApp.Logic
             await dbContext.WrapInTransactionAsync(default, async () =>
             {
                 JobTitle? jobTitle = await dbContext.JobTitles.AsQueryable()
-                    .Where(e => e.Name == name)
+                    .Where(e => e.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
                     .FirstOrDefaultAsync();
                 if (jobTitle == null)
                 {
@@ -191,7 +211,7 @@ namespace MigApp.Logic
         string[] ValidateLine(string line, AppConstants.ImportDestinations dest)
         {
             // серии пробелов заменяем единственным
-            Regex regex = new Regex(@"\s{2,}");
+            Regex regex = new Regex(@"[ ]{2,}");
             line = regex.Replace(line, " ");
             var ary = line.Split('\t', StringSplitOptions.TrimEntries);
             if (dest == AppConstants.ImportDestinations.Departments && ary.Length != 4

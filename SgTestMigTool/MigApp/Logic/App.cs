@@ -70,6 +70,9 @@ namespace MigApp.Logic
                         
                         await printer.Print(depId);
                         break;
+                    case AppConstants.ArgCommands.CLEAR:
+                        await importer.Clear();
+                        break;
                 }
             }
             else

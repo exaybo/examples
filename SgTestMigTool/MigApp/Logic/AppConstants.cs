@@ -8,7 +8,7 @@ namespace MigApp.Logic
 {
     public static class AppConstants
     {
-        public enum ArgCommands { IMPORT, PRINT };
+        public enum ArgCommands { IMPORT, PRINT, CLEAR };
         public enum ImportDestinations { Departments, Employees, JobTitles };
     }
 }
