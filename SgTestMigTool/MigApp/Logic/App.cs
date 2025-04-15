@@ -92,7 +92,10 @@ namespace MigApp.Logic
                 import mode (loads data from .tsv to defined table): 
                     {AppConstants.ArgCommands.IMPORT} ""filename"" {AppConstants.ImportDestinations.Departments}|{AppConstants.ImportDestinations.Employees}|{AppConstants.ImportDestinations.JobTitles}
                 print mode (shows the whole department structure in database or defined department if ID is set): 
-                    {AppConstants.ArgCommands.PRINT} [department ID]"
+                    {AppConstants.ArgCommands.PRINT} [department ID]
+                clear tables:
+                    {AppConstants.ArgCommands.CLEAR}
+                "
             );
         }
     }

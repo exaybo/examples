@@ -6,6 +6,7 @@ using MigApp.Logic;
 
 namespace MigApp
 {
+    //dotnet bin/Debug/net9.0/MigApp.dll
     internal class Program
     {
         static async Task Main(string[] args)

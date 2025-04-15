@@ -46,22 +46,22 @@ namespace MigApp.Logic
             //print info
             if (node == null)
             {
-                Console.WriteLine("=root");
+                //Console.WriteLine("=root");
                 if (uppers != null)
                     foreach (var childId in uppers)
                     {
-                        await Print(childId, level + 1);
+                        await Print(childId, level);
                     }
             }
             else
             {
                 Console.WriteLine($"{Repeat(level+1, "=")} {node.Name} ID={node.Id} ");
                 if(node.Manager != null)
-                    Console.WriteLine($"{Repeat(level)}* {node.Manager.FullName} ID={node.ManagerId} ({node.Manager.JobTitle} ID={node.Manager.JobTitleId})");
+                    Console.WriteLine($"{Repeat(level)}* {node.Manager.FullName} ID={node.ManagerId} ({node.Manager.JobTitle?.Name} ID={node.Manager.JobTitleId})");
                 if (node.Employees != null)
                     foreach(var emp in  node.Employees)
-                        if(emp.JobTitle != null)
-                            Console.WriteLine($"{Repeat(level)}- {emp.FullName} ID={emp.Id} ({emp.JobTitle} ID={emp.JobTitleId})");
+                        if(emp.JobTitle != null && emp.Id != node.ManagerId)
+                            Console.WriteLine($"{Repeat(level)}- {emp.FullName} ID={emp.Id} ({emp.JobTitle?.Name} ID={emp.JobTitleId})");
                 //print children
                 if (node.Children != null)
                     foreach (var child in node.Children.OrderBy(e => e.Name))

@@ -93,22 +93,25 @@ namespace MigApp.Logic
                     department = new Department();
                     dbContext.Add<Department>(department);
                     department.Name = depName;
-                    //ищем парента, если нет, создаем его с nulls
-                    //если вообще нужен
-                    if (!string.IsNullOrWhiteSpace(parentName))
-                    {
-                        Department? parent = await dbContext.Departments.AsQueryable()
-                            .Where(e => EF.Functions.ILike(e.Name, parentName))
-                            .FirstOrDefaultAsync();
-                        if (parent == null)
-                        {
-                            parent = new Department();
-                            dbContext.Add<Department>(parent);
-                            parent.Name = parentName;
-                        }
-                        department.Parent = parent;
-                    }
+                    
                 }
+
+                //ищем парента, если нет, создаем его с nulls
+                //если вообще нужен
+                if (!string.IsNullOrWhiteSpace(parentName))
+                {
+                    Department? parent = await dbContext.Departments.AsQueryable()
+                        .Where(e => EF.Functions.ILike(e.Name, parentName))
+                        .FirstOrDefaultAsync();
+                    if (parent == null)
+                    {
+                        parent = new Department();
+                        dbContext.Add<Department>(parent);
+                        parent.Name = parentName;
+                    }
+                    department.Parent = parent;
+                }
+
                 //ищем манагера, если нет создаем с nulls
                 if (!string.IsNullOrWhiteSpace(managerName))
                 {
