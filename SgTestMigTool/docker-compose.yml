@@ -1,0 +1,39 @@
+services:
+  migapp:
+    image: ${DOCKER_REGISTRY-}migapp
+    environment:
+      - "ConnectionStrings__DefaultConnection=Server=migdb;Port=5432;Database=migtest;User Id=migrator;Password=Wr()0m-wRo0M;Include Error Detail=true;" 
+    build:
+      context: .
+      dockerfile: MigApp/Dockerfile
+    networks:
+      - mignet
+
+  migdb:
+    image: postgres:14
+    container_name: migdb
+    environment:
+      POSTGRES_DB: "migtest"
+      POSTGRES_USER: "migrator"
+      POSTGRES_PASSWORD: "Wr()0m-wRo0M"
+      PGDATA: "/var/lib/postgresql/data/pgdata"
+    ports:
+      - "5432:5432"
+    networks:
+      - mignet
+  
+  pgadmin:
+    container_name: pgadmin
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: "a@gmail.com"
+      PGADMIN_DEFAULT_PASSWORD: "111"
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    ports:
+      - "5052:80"
+    networks:
+      - mignet
+
+networks:
+  mignet:
+    driver: bridge 
