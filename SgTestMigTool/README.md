@@ -1,20 +1,20 @@
-Решение к тестовому заданию https://github.com/STARKOV-Group/SGTest
+Р РµС€РµРЅРёРµ Рє С‚РµСЃС‚РѕРІРѕРјСѓ Р·Р°РґР°РЅРёСЋ https://github.com/STARKOV-Group/SGTest
 
-запуск БД и pgadmin:
+Р·Р°РїСѓСЃРє Р‘Р” Рё pgadmin:
 docker compose up -d migdb pgadmin
 
-После этого можно пользоваться утилитой
-импорты данных:
+РџРѕСЃР»Рµ СЌС‚РѕРіРѕ РјРѕР¶РЅРѕ РїРѕР»СЊР·РѕРІР°С‚СЊСЃСЏ СѓС‚РёР»РёС‚РѕР№
+РёРјРїРѕСЂС‚С‹ РґР°РЅРЅС‹С…:
 docker compose run --rm migapp import /app/TestData/departments.tsv departments
 docker compose run --rm migapp import /app/TestData/employees.tsv employees
 docker compose run --rm migapp import /app/TestData/jobtitles.tsv jobtitles
 
-вывод структуры:
+РІС‹РІРѕРґ СЃС‚СЂСѓРєС‚СѓСЂС‹:
 docker compose run --rm migapp print
 
-очистка таблиц:
+РѕС‡РёСЃС‚РєР° С‚Р°Р±Р»РёС†:
 docker compose run --rm migapp clear
 
-тестовые данные лежат в ./TestData и пробрасываются в контейнер в /app/TestData
-бд и профль pgadmin - в ./pg
+С‚РµСЃС‚РѕРІС‹Рµ РґР°РЅРЅС‹Рµ Р»РµР¶Р°С‚ РІ ./TestData Рё РїСЂРѕР±СЂР°СЃС‹РІР°СЋС‚СЃСЏ РІ РєРѕРЅС‚РµР№РЅРµСЂ РІ /app/TestData
+Р±Рґ Рё РїСЂРѕС„Р»СЊ pgadmin - РІ ./pg
 
