@@ -81,8 +81,8 @@ namespace MigApp.Logic
                 //ищем существующий по имени + имя парента (если есть):
                 Department? department = await dbContext.Departments.AsQueryable()
                     .Include(e => e.Parent)
-                    .Where(e => e.Name.Equals(depName, StringComparison.OrdinalIgnoreCase)
-                        && (e.Parent == null || e.Parent.Name.Equals(parentName, StringComparison.OrdinalIgnoreCase))
+                    .Where(e => EF.Functions.ILike(e.Name, depName)
+                        && (e.Parent == null || EF.Functions.ILike(e.Parent.Name, parentName))
                     )
                     .FirstOrDefaultAsync();
 
@@ -98,7 +98,7 @@ namespace MigApp.Logic
                     if (!string.IsNullOrWhiteSpace(parentName))
                     {
                         Department? parent = await dbContext.Departments.AsQueryable()
-                            .Where(e => e.Name.Equals(parentName, StringComparison.OrdinalIgnoreCase))
+                            .Where(e => EF.Functions.ILike(e.Name, parentName))
                             .FirstOrDefaultAsync();
                         if (parent == null)
                         {
@@ -113,7 +113,7 @@ namespace MigApp.Logic
                 if (!string.IsNullOrWhiteSpace(managerName))
                 {
                     Employee? manager = await dbContext.Employees.AsQueryable()
-                        .Where(e => e.FullName.Equals(managerName, StringComparison.OrdinalIgnoreCase))
+                        .Where(e => EF.Functions.ILike(e.FullName, managerName))
                         .FirstOrDefaultAsync();
 
                     if (manager == null)
@@ -144,7 +144,7 @@ namespace MigApp.Logic
             {
                 //existing?
                 Employee? employee = await dbContext.Employees.AsQueryable()
-                    .Where(e => e.FullName.Equals(name, StringComparison.OrdinalIgnoreCase))
+                    .Where(e => EF.Functions.ILike(e.FullName, name))
                     .FirstOrDefaultAsync();
                 if (employee == null)
                 {
@@ -157,7 +157,7 @@ namespace MigApp.Logic
                 if (!string.IsNullOrWhiteSpace(depName))
                 {
                     Department? department = await dbContext.Departments.AsQueryable()
-                        .Where(e => e.Name.Equals(depName, StringComparison.OrdinalIgnoreCase))
+                        .Where(e => EF.Functions.ILike(e.Name, depName))
                         .FirstOrDefaultAsync();
                     if (department == null)
                     {
@@ -170,7 +170,7 @@ namespace MigApp.Logic
 
                 //ищем джоб, если нет, создаем
                 JobTitle? jobTitle = await dbContext.JobTitles.AsQueryable()
-                    .Where(e => e.Name.Equals(job, StringComparison.OrdinalIgnoreCase))
+                    .Where(e => EF.Functions.ILike(e.Name, job))
                     .FirstOrDefaultAsync();
                 if (jobTitle == null)
                 {
@@ -195,7 +195,7 @@ namespace MigApp.Logic
             await dbContext.WrapInTransactionAsync(default, async () =>
             {
                 JobTitle? jobTitle = await dbContext.JobTitles.AsQueryable()
-                    .Where(e => e.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
+                    .Where(e => EF.Functions.ILike(e.Name, name))
                     .FirstOrDefaultAsync();
                 if (jobTitle == null)
                 {
