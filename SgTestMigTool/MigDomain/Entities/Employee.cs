@@ -6,9 +6,8 @@ using System.Threading.Tasks;
 
 namespace MigDomain.Entities
 {
-    public class Employee
+    public class Employee : BaseEntity
     {
-        public int Id { get; set; }
         public int? DepartmentId { get; set; }
         public string FullName { get; set; }
         public string Login { get; set; }
