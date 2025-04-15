@@ -34,7 +34,7 @@ namespace MigApp
                 try
                 {
                     var dbContext = services.GetRequiredService<AppDbContext>();
-                    //await dbContext.Database.MigrateAsync();
+                    await dbContext.Database.MigrateAsync();
 
                     var app = services.GetRequiredService<App>();
                     await app.RunAsync(args);
